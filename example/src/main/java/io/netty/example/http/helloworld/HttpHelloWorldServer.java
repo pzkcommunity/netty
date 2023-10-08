@@ -50,6 +50,7 @@ public final class HttpHelloWorldServer {
              .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new HttpHelloWorldServerInitializer(sslCtx));
 
+            //绑定端口
             Channel ch = b.bind(PORT).sync().channel();
 
             System.err.println("Open your web browser and navigate to " +

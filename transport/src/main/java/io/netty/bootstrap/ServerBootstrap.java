@@ -129,6 +129,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     @Override
     void init(Channel channel) {
+        //把之前配置的属性存到channel中
         setChannelOptions(channel, newOptionsArray(), logger);
         setAttributes(channel, newAttributesArray());
 
@@ -139,15 +140,18 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final Entry<ChannelOption<?>, Object>[] currentChildOptions = newOptionsArray(childOptions);
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
 
+        //往往ServerSocketChannel的pipeline上塞入一个channelInitializer
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
                 ChannelHandler handler = config.handler();
+                //把之前serverBootstrap配置的handler塞到pipeline中
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
 
+                //异步往pipeline塞入一个ServerBootstrapAcceptor
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -204,14 +208,18 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            //得到新连接对应的channel
             final Channel child = (Channel) msg;
 
+            //将serverbootstrap配置的childHandler设置到channel的pipeline中
             child.pipeline().addLast(childHandler);
 
+            //将serverbootstrap配置的childoption和childattr配置到channel中
             setChannelOptions(child, childOptions, logger);
             setAttributes(child, childAttrs);
 
             try {
+                //从workerGroup中选择一个eventloop，将channel注册上去
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
